@@ -1,0 +1,113 @@
+---
+- name: ONTAP S3 Create
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../vars/ontap.yml
+  tasks:
+    - name: create certificate
+      netapp.ontap.na_ontap_security_certificates:
+        common_name: "cn_{{ s3_name }}"
+        name       : "s3cert{{ s3_name }}"
+        type       : server
+        svm        : "{{ svm_name }}"
+        expiry_time: P365DT     # one year
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        https: true
+        validate_certs: false
+        use_rest: always
+
+    - name: create S3 service
+      netapp.ontap.na_ontap_s3_services:
+        state: present
+        name    : "{{ s3_name }}"
+        vserver : "{{ svm_name }}"
+        enabled : True
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        https: true
+        validate_certs: false
+        use_rest: always
+        certificate_name: "s3cert{{ s3_name }}"
+
+
+    - name: Create S3 bucket
+      netapp.ontap.na_ontap_s3_buckets:
+        state: present
+        name    : "{{ s3_bucket }}"
+        size    : "{{ s3_size }}"
+        vserver : "{{ svm_name }}"
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        https: true
+        validate_certs: false
+        use_rest: always
+    
+    - name: create S3 user
+      netapp.ontap.na_ontap_s3_users:
+        state: present
+        name    : "{{ item }}"
+        vserver : "{{ svm_name }}"
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        https: true
+        validate_certs: false
+        use_rest: always
+      register: userresult
+      with_items:
+        - "{{ s3_user_list }}"
+
+
+            
+    - name: Create S3 policy
+      netapp.ontap.na_ontap_s3_policies:
+        state: present
+        name   : "{{ s3_policy }}"
+        vserver: "{{ svm_name }}"
+        statements:
+          - sid: 1
+            resources:
+            - "{{ s3_bucket }}"
+            - "{{ s3_bucket }}/*"
+            actions:
+              - "*"
+            effect:
+              allow
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        https: true
+        validate_certs: false
+        use_rest: always
+      when: not ansible_check_mode
+
+    - name: Create S3 Group
+      netapp.ontap.na_ontap_s3_groups:
+        state: present
+        name    : "{{ s3_group }}"
+        vserver : "{{ svm_name }}"
+        users   : "{{ s3_user_list2 }}"
+        policies:
+          - name  : "{{ s3_policy }}"
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        https: true
+        validate_certs: false
+        use_rest: always
+      when: not ansible_check_mode
+
+
+    - name: create file from Jinja2 template List1
+      template:
+        src="../templates/s3user.yml.j2"
+        dest="../outputs/s3user_{{ item.item }}.out"
+        backup=true
+      with_items: "{{ userresult.results }}"
+      when: userresult.changed
+

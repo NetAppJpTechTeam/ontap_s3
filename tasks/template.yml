@@ -1,0 +1,31 @@
+- name: create a file from Jinja2 Template 
+  hosts: localhost
+  gather_facts: no
+  vars:
+    file_name_list:
+      - { file_name: "ontap.yml"     , dest_dir: "../vars" }
+  vars_prompt:
+    - { name: "pro_on_cluster_lif",          prompt: "Please enter , on_cluster_lif",           private: no,      default: "" }
+    - { name: "pro_on_cluster_admin",        prompt: "Please enter , on_cluster_admin",         private: no,      default: "" }
+    - { name: "pro_on_cluster_pass",         prompt: "Please enter , on_cluster_pass",          private: no,      default: "" }
+    - { name: "pro_on_aggregate_list",       prompt: "Please enter , on_aggregate_list",        private: no,      default: "" }
+    - { name: "pro_on_aggregate_name",       prompt: "Please enter , on_aggregate_name",        private: no,      default: "" }
+    - { name: "pro_svm_name",                prompt: "Please enter , svm_name",                 private: no,      default: "" }
+    - { name: "pro_svm_lif_mgmt_ip",         prompt: "Please enter , svm_lif_mgmt_ip",          private: no,      default: "" }
+    - { name: "pro_svm_lif_mgmt_subnet",     prompt: "Please enter , svm_lif_mgmt_subnet",      private: no,      default: "" }
+    - { name: "pro_svm_lif_mgmt_home_node",  prompt: "Please enter , svm_lif_mgmt_home_node",   private: no,      default: "" }
+    - { name: "pro_svm_lif_mgmt_home_port",  prompt: "Please enter , svm_lif_mgmt_home_port",   private: no,      default: "" }
+    - { name: "pro_svm_lif_data_ip",         prompt: "Please enter , svm_lif_data_ip",          private: no,      default: "" }
+    - { name: "pro_svm_lif_data_subnet",     prompt: "Please enter , svm_lif_data_subnet",      private: no,      default: "" }
+    - { name: "pro_svm_lif_data_home_node",  prompt: "Please enter , svm_lif_data_home_node",   private: no,      default: "" }
+    - { name: "pro_svm_lif_data_home_port",  prompt: "Please enter , svm_lif_data_home_port",   private: no,      default: "" }
+    - { name: "pro_s3_bucket",               prompt: "Please enter , s3_bucket",                private: no,      default: "" }
+    - { name: "pro_s3_size",                 prompt: "Please enter , s3 bucket size(Byte)",     private: no,      default: "" }
+  tasks:
+    - name: create file from Jinja2 template List1
+      template: 
+        src="../templates/{{ item.file_name }}.j2" 
+        dest="{{ item.dest_dir }}/{{ item.file_name }}" 
+      with_items:
+        - "{{ file_name_list }}"
+

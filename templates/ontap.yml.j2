@@ -1,0 +1,41 @@
+---
+# ONTAP Info
+  ansible_host: localhost
+  cluster_username: {{ pro_on_cluster_admin }}
+  cluster_password: {{ pro_on_cluster_pass }}
+  cluster_hostname: {{ pro_on_cluster_lif }}
+  aggregate_list  : {{ pro_on_aggregate_name }}
+  aggregate_name  : {{ pro_on_aggregate_name }}
+  svm_name             : {{ pro_svm_name }}
+  lif_mgmt_ip_address  : {{ pro_svm_lif_mgmt_ip }}
+  lif_mgmt_ip_subnet   : {{ pro_svm_lif_mgmt_subnet }}
+  lif_mgmt_home_node   : {{ pro_svm_lif_mgmt_home_node }}
+  lif_mgmt_home_port   : {{ pro_svm_lif_mgmt_home_port }}
+  lif_data_ip_address  : {{ pro_svm_lif_data_ip }}
+  lif_data_ip_subnet   : {{ pro_svm_lif_data_subnet }}
+  lif_data_home_node   : {{ pro_svm_lif_data_home_node }}
+  lif_data_home_port   : {{ pro_svm_lif_data_home_port }}
+  nfs_volume_name      : "nfstestvol99"
+
+# ONTAP Info : Fixed
+  service_policy_name : custom-sp-nas-s3
+  service_policy_list:
+    - data_core
+    - data_nfs
+    - data_cifs
+    - data_s3_server
+    - data_flexcache
+    - data_fpolicy-client
+
+# ONTAP S3
+  s3_name    : "{{ pro_svm_name }}_s3"
+  s3_size    : {{ pro_s3_size }}
+  s3_group   : "{{ pro_s3_bucket }}_group"
+  s3_policy  : "{{ pro_s3_bucket }}_policy"
+  s3_bucket  : {{ pro_s3_bucket }}
+  s3_user_list:
+    - {{ pro_s3_bucket }}_user1
+    - {{ pro_s3_bucket }}_user2
+  s3_user_list2:
+    - name: {{ pro_s3_bucket }}_user1
+    - name: {{ pro_s3_bucket }}_user2

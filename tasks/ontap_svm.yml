@@ -1,0 +1,146 @@
+---
+- name: ONTAP SVM Create
+  hosts: localhost
+  gather_facts: no
+  vars_files:
+    - ../vars/ontap.yml
+#    - ../vars/trident.yml
+  tasks:
+    - name: create svm
+      na_ontap_svm:
+        state          : present
+        validate_certs : no
+        https          : yes
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        name: "{{ svm_name }}"
+        aggr_list: "{{ aggregate_list }}"
+        root_volume: volroot
+        root_volume_aggregate: "{{ aggregate_name }}"
+        root_volume_security_style: unix
+
+    - name: Create service policy
+      netapp.ontap.na_ontap_service_policy:
+        state: present
+        validate_certs : no
+        https          : yes
+        name: "{{ service_policy_name }}"
+        services:
+          - data_core
+          - data_nfs
+          - data_cifs
+          - data_s3_server
+        vserver: "{{ svm_name }}"
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+
+
+    - name: create svm mgmt lif
+      na_ontap_interface:
+        state          : present
+        validate_certs : no
+        https          : yes
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        vserver: "{{ svm_name }}"
+        interface_name: "lif_mgmt_{{ svm_name }}"
+        home_node: "{{ lif_mgmt_home_node }}"
+        home_port: "{{ lif_mgmt_home_port }}"
+        service_policy: default-management
+        firewall_policy: mgmt
+        role: data
+        address: "{{ lif_mgmt_ip_address }}"
+        netmask: "{{ lif_mgmt_ip_subnet }}"
+      when: not ansible_check_mode
+
+    - name: create svm data lif
+      na_ontap_interface:
+        state          : present
+        validate_certs : no
+        https          : yes
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        vserver: "{{ svm_name }}"
+        interface_name: "lif_data_{{ svm_name }}"
+        home_node: "{{ lif_data_home_node }}"
+        home_port: "{{ lif_data_home_port }}"
+#        role: data
+        protocols: nfs,cifs
+        address: "{{ lif_data_ip_address }}"
+        netmask: "{{ lif_data_ip_subnet }}"
+        service_policy:  "{{ service_policy_name }}"
+      when: not ansible_check_mode
+
+
+    - name: create export policy.
+      na_ontap_export_policy_rule:
+        state          : present
+        validate_certs : no
+        https          : yes
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        vserver: "{{ svm_name }}"
+        client_match: 0.0.0.0/0
+        policy_name: default
+        protocol: any
+        ro_rule: any
+        rw_rule: any
+        super_user_security: any
+      when: not ansible_check_mode
+
+    - name: enable nfs service.
+      na_ontap_nfs:
+        state          : present
+        validate_certs : no
+        https          : yes
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        vserver: "{{ svm_name }}"
+        service_state: started
+        nfsv3: enabled
+        nfsv4: enabled
+        nfsv41: enabled
+      when: not ansible_check_mode
+
+    - name: Create User
+      netapp.ontap.na_ontap_user:
+        validate_certs : no
+        state: present
+        name: vsadmin
+        applications: ssh,ontapi,http
+        authentication_method: password
+        set_password: "{{ cluster_password }}"
+        lock_user: no
+        role_name: vsadmin
+        vserver: "{{ svm_name }}"
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+      when: not ansible_check_mode
+
+### for test
+    - name: make volume.
+      na_ontap_volume:
+        state          : present
+        validate_certs : no
+        https          : yes
+        hostname: "{{ cluster_hostname }}"
+        username: "{{ cluster_username }}"
+        password: "{{ cluster_password }}"
+        vserver: "{{ svm_name }}"
+        name: "{{ nfs_volume_name }}"
+        size: 10
+        size_unit: gb
+        space_guarantee: none
+        aggregate_name: "{{ aggregate_name }}"
+        volume_security_style: unix
+        type: rw
+        is_online: yes
+        junction_path: "/{{ nfs_volume_name }}"
+      when: not ansible_check_mode

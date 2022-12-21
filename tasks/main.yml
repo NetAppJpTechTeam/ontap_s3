@@ -1,0 +1,8 @@
+- name: template
+  import_playbook: template.yml
+
+- name: ontap svm 
+  import_playbook: ontap_svm.yml
+
+- name: ontap s3
+  import_playbook: ontap_s3.yml
